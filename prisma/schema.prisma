@@ -1,0 +1,405 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── ENUMS ──────────────────────────────────────────────────────────────────
+
+enum Status {
+  active
+  inactive
+  suspended
+}
+
+enum CleanerAvailability {
+  available
+  on_job
+  unavailable
+  day_off
+  sick_leave
+}
+
+enum CleaningSpecialization {
+  residential
+  commercial
+  deep_clean
+  move_in_out
+  post_construction
+  carpet
+  window
+  sanitization
+}
+
+enum BackgroundCheckStatus {
+  cleared
+  pending
+  expired
+}
+
+enum ClientType {
+  residential
+  commercial
+}
+
+enum OrderStatus {
+  pending
+  assigned
+  confirmed
+  in_progress
+  completed
+  cancelled
+  no_show
+  reassigning
+}
+
+enum OrderPriority {
+  low
+  normal
+  high
+  urgent
+}
+
+enum RecurrencePattern {
+  one_time
+  weekly
+  biweekly
+  monthly
+}
+
+enum PaymentStatus {
+  unpaid
+  partial
+  paid
+  refunded
+}
+
+enum NotificationType {
+  order_assigned
+  order_cancelled
+  order_completed
+  cleaner_cancelled
+  replacement_found
+  replacement_failed
+  shift_reminder
+  rating_received
+  system_alert
+}
+
+enum NotificationChannel {
+  in_app
+  sms
+  email
+  push
+}
+
+enum AssignmentRuleType {
+  proximity
+  availability
+  specialization
+  rating
+  overtime_prevention
+  client_preference
+  workload_balance
+  cost_optimization
+}
+
+// ─── AUTH MODELS ─────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          String    @default("admin")
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ─── MODELS ─────────────────────────────────────────────────────────────────
+
+model Cleaner {
+  id                    String                   @id @default(uuid())
+  firstName             String
+  lastName              String
+  email                 String                   @unique
+  phone                 String
+  avatar                String?
+  status                Status                   @default(active)
+  availability          CleanerAvailability      @default(available)
+  specializations       CleaningSpecialization[]
+  rating                Float                    @default(0)
+  totalReviews          Int                      @default(0)
+  yearsExperience       Int                      @default(0)
+  certifications        String[]                 @default([])
+  backgroundCheckDate   DateTime?
+  backgroundCheckStatus BackgroundCheckStatus    @default(pending)
+
+  // Location
+  homeLatitude          Float?
+  homeLongitude         Float?
+  homeAddress           String?
+  homeCity              String?
+  homeState             String?
+  homeZipCode           String?
+  serviceRadius         Int                      @default(10)
+  currentLatitude       Float?
+  currentLongitude      Float?
+  zone                  String
+
+  // Work metrics
+  hoursWorkedThisWeek   Float                    @default(0)
+  hoursWorkedThisMonth  Float                    @default(0)
+  hourlyRate            Float
+  overtimeRate          Float
+  completedOrders       Int                      @default(0)
+  cancellationRate      Float                    @default(0)
+
+  // Schedule preferences (stored as JSON)
+  preferredDays         Int[]                    @default([1, 2, 3, 4, 5])
+  preferredStartTime    String                   @default("08:00")
+  preferredEndTime      String                   @default("18:00")
+  maxHoursPerWeek       Int                      @default(40)
+  noGoZones             String[]                 @default([])
+
+  notes                 String                   @default("")
+  lastOrderDate         DateTime?
+
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  // Relations
+  assignedOrders        Order[]                  @relation("AssignedCleaner")
+  notifications         Notification[]
+  assignmentLogs        AssignmentLog[]
+
+  @@map("cleaners")
+}
+
+model Client {
+  id                 String     @id @default(uuid())
+  name               String
+  type               ClientType @default(residential)
+  contactPerson      String
+  email              String
+  phone              String
+
+  // Address
+  latitude           Float?
+  longitude          Float?
+  address            String
+  city               String
+  state              String
+  zipCode            String
+
+  preferredCleanerId String?
+  notes              String     @default("")
+  totalOrders        Int        @default(0)
+  averageOrderValue  Float      @default(0)
+  lastServiceDate    DateTime?
+
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  // Relations
+  orders             Order[]
+
+  @@map("clients")
+}
+
+model Order {
+  id                   String                  @id @default(uuid())
+  orderNumber          String                  @unique
+
+  // Client
+  clientId             String
+  client               Client                  @relation(fields: [clientId], references: [id])
+  clientName           String
+  clientPhone          String
+
+  // Address
+  latitude             Float?
+  longitude            Float?
+  address              String
+  city                 String
+  state                String
+  zipCode              String
+
+  // Service details
+  type                 CleaningSpecialization
+  items                Json                    @default("[]")
+  specialInstructions  String?
+  estimatedDuration    Int
+  squareFootage        Int?
+
+  // Scheduling
+  scheduledDate        DateTime
+  scheduledStartTime   String
+  scheduledEndTime     String
+  actualStartTime      String?
+  actualEndTime        String?
+  recurrence           RecurrencePattern       @default(one_time)
+
+  // Assignment
+  assignedCleanerId    String?
+  assignedCleaner      Cleaner?                @relation("AssignedCleaner", fields: [assignedCleanerId], references: [id])
+  assignedCleanerName  String?
+  previousCleanerIds   String[]                @default([])
+  autoAssigned         Boolean                 @default(false)
+
+  // Status
+  status               OrderStatus             @default(pending)
+  priority             OrderPriority           @default(normal)
+  cancellationReason   String?
+  cancellationTime     DateTime?
+
+  // Financials
+  subtotal             Float
+  tax                  Float
+  discount             Float                   @default(0)
+  total                Float
+  paymentStatus        PaymentStatus           @default(unpaid)
+
+  // Feedback
+  clientRating         Int?
+  clientFeedback       String?
+  cleanerNotes         String?
+
+  // Photos
+  beforePhotos         String[]                @default([])
+  afterPhotos          String[]                @default([])
+
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  // Relations
+  notifications        Notification[]
+  assignmentLogs       AssignmentLog[]
+
+  @@index([clientId])
+  @@index([assignedCleanerId])
+  @@index([scheduledDate])
+  @@index([status])
+  @@map("orders")
+}
+
+model Notification {
+  id               String               @id @default(uuid())
+  type             NotificationType
+  title            String
+  message          String
+  read             Boolean              @default(false)
+  channels         NotificationChannel[]
+
+  relatedOrderId   String?
+  relatedOrder     Order?               @relation(fields: [relatedOrderId], references: [id])
+  relatedCleanerId String?
+  relatedCleaner   Cleaner?             @relation(fields: [relatedCleanerId], references: [id])
+
+  actionUrl        String?
+  metadata         Json?
+
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@index([read])
+  @@index([relatedOrderId])
+  @@map("notifications")
+}
+
+model AssignmentRule {
+  id       String             @id @default(uuid())
+  name     String
+  enabled  Boolean            @default(true)
+  priority Int
+  weight   Int                @default(50)
+  type     AssignmentRuleType
+
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  @@map("assignment_rules")
+}
+
+model AssignmentLog {
+  id                   String   @id @default(uuid())
+
+  orderId              String
+  order                Order    @relation(fields: [orderId], references: [id])
+  orderNumber          String
+
+  triggerReason        String
+  candidatesContacted  Int      @default(0)
+  candidatesResponded  Int      @default(0)
+
+  selectedCleanerId    String?
+  selectedCleaner      Cleaner? @relation(fields: [selectedCleanerId], references: [id])
+  selectedCleanerName  String?
+
+  success              Boolean  @default(false)
+  durationSeconds      Int      @default(0)
+
+  // Full candidate scores stored as JSON
+  candidateScores      Json?
+
+  createdAt            DateTime @default(now())
+
+  @@index([orderId])
+  @@map("assignment_logs")
+}

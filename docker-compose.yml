@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: cleanslate-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cleanslate
+      POSTGRES_PASSWORD: cleanslate_secret
+      POSTGRES_DB: cleanslate
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
