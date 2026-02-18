@@ -20,6 +20,10 @@ export interface AssignmentRule {
 export interface AssignmentCandidate {
   cleanerId: ID;
   cleanerName: string;
+  phone: string;
+  email: string;
+  homeAddress: string;
+  availability: "available" | "on_job" | "unavailable" | "day_off" | "sick_leave";
   score: number;
   distance: number;
   currentHoursThisWeek: number;

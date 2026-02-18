@@ -19,6 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { orderStore } from "@/lib/services/db-service";
+import { prisma } from "@/lib/db";
 import {
   ORDER_STATUS_LABELS,
   ORDER_STATUS_COLORS,
@@ -29,6 +30,8 @@ import {
 } from "@/lib/constants";
 import { cn, formatDate, formatTime } from "@/lib/utils";
 import type { Order } from "@/types/order";
+import { AssignmentPanelWrapper } from "./assignment-wrapper";
+import { AssignmentHistory } from "@/components/dashboard/orders/assignment-history";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +59,17 @@ export default async function OrderDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const order: Order | undefined = await orderStore.getById(id);
+  const [order, assignmentLogs, orderNotifications] = await Promise.all([
+    orderStore.getById(id) as Promise<Order | undefined>,
+    prisma.assignmentLog.findMany({
+      where: { orderId: id },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.notification.findMany({
+      where: { relatedOrderId: id, type: "order_assigned" },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
 
   if (!order) {
     return (
@@ -178,7 +191,7 @@ export default async function OrderDetailPage({
       </div>
 
       {/* Detail Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Client Information */}
         <Card>
           <CardHeader>
@@ -315,52 +328,55 @@ export default async function OrderDetailPage({
             )}
           </CardContent>
         </Card>
-
-        {/* Assignment */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <User className="h-4 w-4 text-teal-600" />
-              Assignment
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Assigned Cleaner</p>
-              <p className="font-medium">
-                {order.assignedCleanerName ?? (
-                  <span className="text-muted-foreground italic">
-                    Unassigned
-                  </span>
-                )}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Assignment Method</p>
-              <Badge
-                variant="outline"
-                className={cn(
-                  order.autoAssigned
-                    ? "border-teal-200 text-teal-700 dark:border-teal-800 dark:text-teal-400"
-                    : ""
-                )}
-              >
-                {order.autoAssigned ? "Auto-Assigned" : "Manual"}
-              </Badge>
-            </div>
-            {order.cleanerNotes && (
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">
-                  Cleaner Notes
-                </p>
-                <p className="text-sm bg-muted/50 rounded-lg p-3">
-                  {order.cleanerNotes}
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
+
+      {/* ====== Cleaner Selection — full width inline ====== */}
+      <AssignmentPanelWrapper
+        order={order}
+        notifications={orderNotifications.map((n) => ({
+          id: n.id,
+          type: n.type,
+          title: n.title,
+          message: n.message,
+          channels: n.channels,
+          metadata: n.metadata as Record<string, unknown> | null,
+          createdAt: n.createdAt.toISOString(),
+        }))}
+      />
+
+      {/* Assignment History */}
+      <AssignmentHistory
+        logs={assignmentLogs.map((log) => ({
+          id: log.id,
+          triggerReason: log.triggerReason,
+          candidatesContacted: log.candidatesContacted,
+          candidatesResponded: log.candidatesResponded,
+          selectedCleanerName: log.selectedCleanerName,
+          success: log.success,
+          durationSeconds: log.durationSeconds,
+          candidateScores: log.candidateScores as unknown as Array<{
+            cleanerId: string;
+            cleanerName: string;
+            score: number;
+            distance: number;
+            rating: number;
+            hourlyRate: number;
+            reasons: string[];
+            specializationMatch: boolean;
+            isPreferred: boolean;
+          }> | null,
+          createdAt: log.createdAt.toISOString(),
+        }))}
+        notifications={orderNotifications.map((n) => ({
+          id: n.id,
+          type: n.type,
+          title: n.title,
+          message: n.message,
+          channels: n.channels,
+          metadata: n.metadata as Record<string, unknown> | null,
+          createdAt: n.createdAt.toISOString(),
+        }))}
+      />
 
       {/* Financials */}
       <Card>

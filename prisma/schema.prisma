@@ -172,6 +172,19 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
+model PasswordResetToken {
+  id      String   @id @default(uuid())
+  email   String
+  token   String   @unique
+  expires DateTime
+  used    Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@map("password_reset_tokens")
+}
+
 // ─── MODELS ─────────────────────────────────────────────────────────────────
 
 model Cleaner {

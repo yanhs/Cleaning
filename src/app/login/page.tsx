@@ -35,6 +35,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -78,17 +79,33 @@ export default function LoginPage() {
             <Button
               variant="outline"
               className="w-full"
-              onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+              disabled={oauthLoading !== null}
+              onClick={() => {
+                setOauthLoading("google");
+                signIn("google", { callbackUrl: "/dashboard" });
+              }}
             >
-              <GoogleIcon className="mr-2 h-4 w-4" />
+              {oauthLoading === "google" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <GoogleIcon className="mr-2 h-4 w-4" />
+              )}
               Google
             </Button>
             <Button
               variant="outline"
               className="w-full"
-              onClick={() => signIn("apple", { callbackUrl: "/dashboard" })}
+              disabled={oauthLoading !== null}
+              onClick={() => {
+                setOauthLoading("apple");
+                signIn("apple", { callbackUrl: "/dashboard" });
+              }}
             >
-              <AppleIcon className="mr-2 h-4 w-4" />
+              {oauthLoading === "apple" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <AppleIcon className="mr-2 h-4 w-4" />
+              )}
               Apple
             </Button>
           </div>
@@ -121,7 +138,15 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-teal-600 hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <Input
                 id="password"
                 type="password"

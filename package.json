@@ -1,9 +1,10 @@
 {
-  "name": "pr1",
+  "name": "cleaning",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "kill": "for /f \"tokens=5\" %a in ('netstat -ano ^| findstr :3000 ^| findstr LISTENING') do taskkill /F /PID %a",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

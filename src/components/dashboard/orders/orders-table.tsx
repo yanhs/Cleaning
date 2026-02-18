@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, ArrowUpDown, Eye } from "lucide-react";
+import { Search, ArrowUpDown } from "lucide-react";
 import { cn, formatCurrency, formatDate, formatTime } from "@/lib/utils";
 import {
   ORDER_STATUS_LABELS,
@@ -36,11 +36,37 @@ interface OrdersTableProps {
   orders: Order[];
 }
 
+type SortKey =
+  | "orderNumber"
+  | "clientName"
+  | "type"
+  | "scheduledDate"
+  | "cleaner"
+  | "status"
+  | "priority"
+  | "total";
+
+const PRIORITY_ORDER: Record<string, number> = {
+  urgent: 0,
+  high: 1,
+  normal: 2,
+  low: 3,
+};
+
+const STATUS_ORDER: Record<string, number> = {
+  pending: 0,
+  assigned: 1,
+  in_progress: 2,
+  completed: 3,
+  cancelled: 4,
+};
+
 export function OrdersTable({ orders }: OrdersTableProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
-  const [sortKey, setSortKey] = useState<string>("scheduledDate");
+  const [sortKey, setSortKey] = useState<SortKey>("scheduledDate");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const filtered = useMemo(() => {
@@ -68,12 +94,22 @@ export function OrdersTable({ orders }: OrdersTableProps) {
     result = [...result].sort((a, b) => {
       const dir = sortDir === "asc" ? 1 : -1;
       switch (sortKey) {
-        case "scheduledDate":
-          return (new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime()) * dir;
-        case "total":
-          return (a.total - b.total) * dir;
+        case "orderNumber":
+          return a.orderNumber.localeCompare(b.orderNumber) * dir;
         case "clientName":
           return a.clientName.localeCompare(b.clientName) * dir;
+        case "type":
+          return a.type.localeCompare(b.type) * dir;
+        case "scheduledDate":
+          return (new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime()) * dir;
+        case "cleaner":
+          return (a.assignedCleanerName || "").localeCompare(b.assignedCleanerName || "") * dir;
+        case "status":
+          return ((STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99)) * dir;
+        case "priority":
+          return ((PRIORITY_ORDER[a.priority] ?? 99) - (PRIORITY_ORDER[b.priority] ?? 99)) * dir;
+        case "total":
+          return (a.total - b.total) * dir;
         default:
           return 0;
       }
@@ -82,7 +118,7 @@ export function OrdersTable({ orders }: OrdersTableProps) {
     return result;
   }, [orders, search, statusFilter, priorityFilter, sortKey, sortDir]);
 
-  function handleSort(key: string) {
+  function handleSort(key: SortKey) {
     if (sortKey === key) {
       setSortDir(sortDir === "asc" ? "desc" : "asc");
     } else {
@@ -145,39 +181,62 @@ export function OrdersTable({ orders }: OrdersTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Order #</TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" className="-ml-3 font-semibold" onClick={() => handleSort("orderNumber")}>
+                  Order # <ArrowUpDown className="ml-1 h-3 w-3" />
+                </Button>
+              </TableHead>
               <TableHead>
                 <Button variant="ghost" size="sm" className="-ml-3 font-semibold" onClick={() => handleSort("clientName")}>
                   Client <ArrowUpDown className="ml-1 h-3 w-3" />
                 </Button>
               </TableHead>
-              <TableHead>Type</TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" className="-ml-3 font-semibold" onClick={() => handleSort("type")}>
+                  Type <ArrowUpDown className="ml-1 h-3 w-3" />
+                </Button>
+              </TableHead>
               <TableHead>
                 <Button variant="ghost" size="sm" className="-ml-3 font-semibold" onClick={() => handleSort("scheduledDate")}>
                   Date & Time <ArrowUpDown className="ml-1 h-3 w-3" />
                 </Button>
               </TableHead>
-              <TableHead>Cleaner</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Priority</TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" className="-ml-3 font-semibold" onClick={() => handleSort("cleaner")}>
+                  Cleaner <ArrowUpDown className="ml-1 h-3 w-3" />
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" className="-ml-3 font-semibold" onClick={() => handleSort("status")}>
+                  Status <ArrowUpDown className="ml-1 h-3 w-3" />
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" className="-ml-3 font-semibold" onClick={() => handleSort("priority")}>
+                  Priority <ArrowUpDown className="ml-1 h-3 w-3" />
+                </Button>
+              </TableHead>
               <TableHead>
                 <Button variant="ghost" size="sm" className="-ml-3 font-semibold" onClick={() => handleSort("total")}>
                   Total <ArrowUpDown className="ml-1 h-3 w-3" />
                 </Button>
               </TableHead>
-              <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                   No orders found.
                 </TableCell>
               </TableRow>
             ) : (
               filtered.slice(0, 50).map((order) => (
-                <TableRow key={order.id} className="group">
+                <TableRow
+                  key={order.id}
+                  className="group cursor-pointer hover:bg-muted/50"
+                  onClick={() => router.push(`/dashboard/orders/${order.id}`)}
+                >
                   <TableCell className="font-mono text-sm">{order.orderNumber}</TableCell>
                   <TableCell>
                     <div>
@@ -202,7 +261,9 @@ export function OrdersTable({ orders }: OrdersTableProps) {
                     {order.assignedCleanerName ? (
                       <span className="text-sm">{order.assignedCleanerName}</span>
                     ) : (
-                      <span className="text-sm text-muted-foreground italic">Unassigned</span>
+                      <span className="text-sm text-teal-600 font-medium">
+                        Assign
+                      </span>
                     )}
                   </TableCell>
                   <TableCell>
@@ -216,13 +277,6 @@ export function OrdersTable({ orders }: OrdersTableProps) {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm font-semibold">{formatCurrency(order.total)}</TableCell>
-                  <TableCell>
-                    <Link href={`/dashboard/orders/${order.id}`}>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </Link>
-                  </TableCell>
                 </TableRow>
               ))
             )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Star, ArrowUpDown, Eye } from "lucide-react";
+import { Search, Star, ArrowUpDown } from "lucide-react";
 import { cn, getInitials, formatPhone } from "@/lib/utils";
 import {
   AVAILABILITY_LABELS,
@@ -36,9 +36,25 @@ interface CleanersTableProps {
   cleaners: Cleaner[];
 }
 
-type SortKey = "name" | "rating" | "hoursWorkedThisWeek" | "hourlyRate" | "completedOrders";
+type SortKey =
+  | "name"
+  | "specializations"
+  | "zone"
+  | "phone"
+  | "hoursWorkedThisWeek"
+  | "hourlyRate"
+  | "availability"
+  | "rating";
+
+const AVAILABILITY_ORDER: Record<string, number> = {
+  available: 0,
+  busy: 1,
+  on_leave: 2,
+  off_duty: 3,
+};
 
 export function CleanersTable({ cleaners }: CleanersTableProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [zoneFilter, setZoneFilter] = useState<string>("all");
   const [availabilityFilter, setAvailabilityFilter] = useState<string>("all");
@@ -72,14 +88,20 @@ export function CleanersTable({ cleaners }: CleanersTableProps) {
       switch (sortKey) {
         case "name":
           return (`${a.firstName} ${a.lastName}`).localeCompare(`${b.firstName} ${b.lastName}`) * dir;
-        case "rating":
-          return (a.rating - b.rating) * dir;
+        case "specializations":
+          return (a.specializations.length - b.specializations.length) * dir;
+        case "zone":
+          return a.zone.localeCompare(b.zone) * dir;
+        case "phone":
+          return a.phone.localeCompare(b.phone) * dir;
         case "hoursWorkedThisWeek":
           return (a.hoursWorkedThisWeek - b.hoursWorkedThisWeek) * dir;
         case "hourlyRate":
           return (a.hourlyRate - b.hourlyRate) * dir;
-        case "completedOrders":
-          return (a.completedOrders - b.completedOrders) * dir;
+        case "availability":
+          return ((AVAILABILITY_ORDER[a.availability] ?? 99) - (AVAILABILITY_ORDER[b.availability] ?? 99)) * dir;
+        case "rating":
+          return (a.rating - b.rating) * dir;
         default:
           return 0;
       }
@@ -155,9 +177,21 @@ export function CleanersTable({ cleaners }: CleanersTableProps) {
                   Cleaner <ArrowUpDown className="ml-1 h-3 w-3" />
                 </Button>
               </TableHead>
-              <TableHead>Specializations</TableHead>
-              <TableHead>Zone</TableHead>
-              <TableHead>Phone</TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" className="-ml-3 font-semibold" onClick={() => handleSort("specializations")}>
+                  Specializations <ArrowUpDown className="ml-1 h-3 w-3" />
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" className="-ml-3 font-semibold" onClick={() => handleSort("zone")}>
+                  Zone <ArrowUpDown className="ml-1 h-3 w-3" />
+                </Button>
+              </TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" className="-ml-3 font-semibold" onClick={() => handleSort("phone")}>
+                  Phone <ArrowUpDown className="ml-1 h-3 w-3" />
+                </Button>
+              </TableHead>
               <TableHead>
                 <Button variant="ghost" size="sm" className="-ml-3 font-semibold" onClick={() => handleSort("hoursWorkedThisWeek")}>
                   Hours/Week <ArrowUpDown className="ml-1 h-3 w-3" />
@@ -168,25 +202,32 @@ export function CleanersTable({ cleaners }: CleanersTableProps) {
                   Rate <ArrowUpDown className="ml-1 h-3 w-3" />
                 </Button>
               </TableHead>
-              <TableHead>Availability</TableHead>
+              <TableHead>
+                <Button variant="ghost" size="sm" className="-ml-3 font-semibold" onClick={() => handleSort("availability")}>
+                  Availability <ArrowUpDown className="ml-1 h-3 w-3" />
+                </Button>
+              </TableHead>
               <TableHead>
                 <Button variant="ghost" size="sm" className="-ml-3 font-semibold" onClick={() => handleSort("rating")}>
                   Rating <ArrowUpDown className="ml-1 h-3 w-3" />
                 </Button>
               </TableHead>
-              <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                   No cleaners found.
                 </TableCell>
               </TableRow>
             ) : (
               filtered.map((cleaner) => (
-                <TableRow key={cleaner.id} className="group">
+                <TableRow
+                  key={cleaner.id}
+                  className="group cursor-pointer hover:bg-muted/50"
+                  onClick={() => router.push(`/dashboard/cleaners/${cleaner.id}`)}
+                >
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <Avatar className="h-9 w-9">
@@ -243,13 +284,6 @@ export function CleanersTable({ cleaners }: CleanersTableProps) {
                       <span className="text-sm font-medium">{cleaner.rating}</span>
                       <span className="text-xs text-muted-foreground">({cleaner.totalReviews})</span>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <Link href={`/dashboard/cleaners/${cleaner.id}`}>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </Link>
                   </TableCell>
                 </TableRow>
               ))

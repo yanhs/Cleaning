@@ -13,7 +13,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/login",
   },
   providers: [
-    Google,
+    Google({
+      authorization: {
+        params: {
+          prompt: "select_account",
+        },
+      },
+    }),
     Apple,
     Credentials({
       name: "credentials",
@@ -47,6 +53,55 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === "credentials") return true;
+
+      // Auto-link OAuth account to existing user with same email
+      if (user.email && account) {
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email },
+        });
+
+        if (existingUser) {
+          const existingAccount = await prisma.account.findUnique({
+            where: {
+              provider_providerAccountId: {
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+              },
+            },
+          });
+
+          if (!existingAccount) {
+            await prisma.account.create({
+              data: {
+                userId: existingUser.id,
+                type: account.type,
+                provider: account.provider,
+                providerAccountId: account.providerAccountId,
+                refresh_token: account.refresh_token,
+                access_token: account.access_token,
+                expires_at: account.expires_at,
+                token_type: account.token_type,
+                scope: account.scope,
+                id_token: account.id_token,
+                session_state: account.session_state as string | undefined,
+              },
+            });
+          }
+
+          // Update user image/name from OAuth if not set
+          if (!existingUser.image && user.image) {
+            await prisma.user.update({
+              where: { id: existingUser.id },
+              data: { image: user.image, name: user.name || existingUser.name },
+            });
+          }
+        }
+      }
+
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.role = (user as any).role;

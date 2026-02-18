@@ -24,10 +24,10 @@ export function TodaySchedule({ orders }: TodayScheduleProps) {
             Today&apos;s Schedule
           </CardTitle>
           <Link
-            href="/dashboard/schedule"
+            href="/dashboard/orders"
             className="text-xs text-teal-600 hover:text-teal-700 dark:text-teal-400 font-medium"
           >
-            Full calendar
+            All orders
           </Link>
         </div>
       </CardHeader>
