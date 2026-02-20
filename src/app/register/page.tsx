@@ -49,7 +49,7 @@ export default function RegisterPage() {
 
     setLoading(true);
 
-    const res = await fetch("/api/register", {
+    const res = await fetch("/cleaning/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password }),
@@ -101,7 +101,7 @@ export default function RegisterPage() {
             <Button
               variant="outline"
               className="w-full"
-              onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+              onClick={() => signIn("google", { callbackUrl: "/cleaning/dashboard" })}
             >
               <GoogleIcon className="mr-2 h-4 w-4" />
               Google
@@ -109,7 +109,7 @@ export default function RegisterPage() {
             <Button
               variant="outline"
               className="w-full"
-              onClick={() => signIn("apple", { callbackUrl: "/dashboard" })}
+              onClick={() => signIn("apple", { callbackUrl: "/cleaning/dashboard" })}
             >
               <AppleIcon className="mr-2 h-4 w-4" />
               Apple

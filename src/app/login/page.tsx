@@ -82,7 +82,7 @@ export default function LoginPage() {
               disabled={oauthLoading !== null}
               onClick={() => {
                 setOauthLoading("google");
-                signIn("google", { callbackUrl: "/dashboard" });
+                signIn("google", { callbackUrl: "/cleaning/dashboard" });
               }}
             >
               {oauthLoading === "google" ? (
@@ -98,7 +98,7 @@ export default function LoginPage() {
               disabled={oauthLoading !== null}
               onClick={() => {
                 setOauthLoading("apple");
-                signIn("apple", { callbackUrl: "/dashboard" });
+                signIn("apple", { callbackUrl: "/cleaning/dashboard" });
               }}
             >
               {oauthLoading === "apple" ? (

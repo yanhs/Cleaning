@@ -7,6 +7,8 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  basePath: "/api/auth",
+  trustHost: true,
   adapter: PrismaAdapter(prisma) as any,
   session: { strategy: "jwt" },
   pages: {
@@ -14,6 +16,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   providers: [
     Google({
+      clientId: process.env.AUTH_GOOGLE_ID,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET,
       authorization: {
         params: {
           prompt: "select_account",
@@ -101,6 +105,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       return true;
+    },
+    async redirect({ url, baseUrl }) {
+      // Ensure redirects always include /cleaning prefix
+      if (url.startsWith("/") && !url.startsWith("/cleaning")) {
+        return `${baseUrl}/cleaning${url}`;
+      }
+      if (url.startsWith(baseUrl) && !url.includes("/cleaning")) {
+        return url.replace(baseUrl, `${baseUrl}/cleaning`);
+      }
+      return url.startsWith("/") ? `${baseUrl}${url}` : url;
     },
     async jwt({ token, user }) {
       if (user) {

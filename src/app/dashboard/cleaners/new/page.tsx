@@ -173,7 +173,7 @@ export default function AddCleanerPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/cleaners", {
+      const response = await fetch("/cleaning/api/cleaners", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

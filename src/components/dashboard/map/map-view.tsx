@@ -118,7 +118,7 @@ export function MapView() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch("/api/map");
+        const res = await fetch("/cleaning/api/map");
         const data = await res.json();
         setCleaners(data.cleaners || []);
         setOrders(data.orders || []);

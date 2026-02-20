@@ -107,7 +107,7 @@ export default function NewOrderPage() {
         items: [],
       };
 
-      const response = await fetch("/api/orders", {
+      const response = await fetch("/cleaning/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

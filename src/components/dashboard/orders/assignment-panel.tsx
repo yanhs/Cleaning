@@ -306,7 +306,7 @@ export function AssignmentPanel({
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/orders/${orderId}/suggest`);
+      const res = await fetch(`/cleaning/api/orders/${orderId}/suggest`);
       const data = await res.json();
       setCandidates(data.candidates || []);
     } catch {
@@ -427,7 +427,7 @@ export function AssignmentPanel({
   async function handleAssign(cleanerId: string) {
     setError("");
     try {
-      const res = await fetch(`/api/orders/${orderId}/assign`, {
+      const res = await fetch(`/cleaning/api/orders/${orderId}/assign`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ method: "manual", cleanerId }),
@@ -449,7 +449,7 @@ export function AssignmentPanel({
   async function handleAutoAssign() {
     setError("");
     try {
-      const res = await fetch(`/api/orders/${orderId}/assign`, {
+      const res = await fetch(`/cleaning/api/orders/${orderId}/assign`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ method: "auto" }),
