@@ -9,6 +9,7 @@ import {
   DollarSign,
   Shield,
   Calendar,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -127,12 +128,18 @@ export default async function CleanerDetailPage({
 
   return (
     <div className="space-y-6">
-      {/* Back Button */}
-      <div className="flex items-center gap-4">
+      {/* Back Button + Edit */}
+      <div className="flex items-center justify-between">
         <Link href="/dashboard/cleaners">
           <Button variant="ghost" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Cleaners
+          </Button>
+        </Link>
+        <Link href={`/dashboard/cleaners/${id}/edit`}>
+          <Button size="sm" className="bg-teal-600 hover:bg-teal-700 text-white">
+            <Pencil className="mr-2 h-4 w-4" />
+            Edit
           </Button>
         </Link>
       </div>
